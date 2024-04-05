@@ -1,23 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box } from '@mui/material';
 import { useDrag, useDragDropManager } from 'react-dnd';
 import { useRafLoop } from 'react-use';
 
 import ModuleInterface from '../types/ModuleInterface';
-import { moduleW2LocalWidth, moduleX2LocalX, moduleY2LocalY } from '../helpers';
+import { checkOverlapping, getMaxModuleContainer, moduleW2LocalWidth, moduleX2LocalX, moduleY2LocalY } from '../helpers';
+import PositionInterface from '../types/PositionInterface';
+import { GUTTER_SIZE } from '../constants';
 
 type ModuleProps = {
   data: ModuleInterface;
+  onMove?: (id: number, position: PositionInterface) => void;
+  modules: ModuleInterface[]
 };
 
 const Module = (props: ModuleProps) => {
-  const { data: { id, coord: { x, y, w, h } } } = props;
+  const { data: { id, coord: { x, y, w, h } }, onMove, modules } = props;
 
   // Transform x, y to left, top
-  const [{ top, left }, setPosition] = React.useState(() => ({
+  const [{ top, left }, setPosition] = useState<PositionInterface>(() => ({
     top: moduleY2LocalY(y),
     left: moduleX2LocalX(x),
   }));
+
 
   const dndManager = useDragDropManager();
   const initialPosition = React.useRef<{ top: number; left: number }>();
@@ -30,11 +35,19 @@ const Module = (props: ModuleProps) => {
       return;
     }
 
-    // Update new position of the module
-    setPosition({
-      top: initialPosition.current.top + movement.y,
-      left: initialPosition.current.left + movement.x,
-    });
+    const maxModuleContainer = getMaxModuleContainer(w);
+    const newTop = Math.max(0, initialPosition.current.top + movement.y);
+    const newLeft = Math.max(0, Math.min(initialPosition.current.left + movement.x, maxModuleContainer));
+
+    const newModule = { id, coord: { x: newLeft, y: newTop, w, h } };
+    if (!checkOverlapping(modules, newModule)) {
+      const newPosition = { top: newTop, left: newLeft };
+      setPosition(newPosition);
+  
+      if (onMove) {
+        onMove(id, newPosition);
+      }
+    }
   }, false);
 
   // Wire the module to DnD drag system
