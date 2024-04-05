@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import { Box } from '@mui/material';
 import { useDrag, useDragDropManager } from 'react-dnd';
 import { useRafLoop } from 'react-use';
-
 import ModuleInterface from '../types/ModuleInterface';
-import { checkOverlapping, getMaxModuleContainer, moduleW2LocalWidth, moduleX2LocalX, moduleY2LocalY } from '../helpers';
+import { addGutterSize, checkOverlapping, getMaxModuleContainer, removeGutterSize } from '../helpers';
 import PositionInterface from '../types/PositionInterface';
-import { GUTTER_SIZE } from '../constants';
 
 type ModuleProps = {
   data: ModuleInterface;
@@ -19,8 +17,8 @@ const Module = (props: ModuleProps) => {
 
   // Transform x, y to left, top
   const [{ top, left }, setPosition] = useState<PositionInterface>(() => ({
-    top: moduleY2LocalY(y),
-    left: moduleX2LocalX(x),
+    top: y,
+    left: x,
   }));
 
 
@@ -35,6 +33,7 @@ const Module = (props: ModuleProps) => {
       return;
     }
 
+    // create new position considering conditinals to do not move outside of the main container
     const maxModuleContainer = getMaxModuleContainer(w);
     const newTop = Math.max(0, initialPosition.current.top + movement.y);
     const newLeft = Math.max(0, Math.min(initialPosition.current.left + movement.x, maxModuleContainer));
@@ -43,7 +42,7 @@ const Module = (props: ModuleProps) => {
     if (!checkOverlapping(modules, newModule)) {
       const newPosition = { top: newTop, left: newLeft };
       setPosition(newPosition);
-  
+
       if (onMove) {
         onMove(id, newPosition);
       }
@@ -73,10 +72,10 @@ const Module = (props: ModuleProps) => {
       borderColor="grey.500"
       padding="10px"
       bgcolor="rgba(0, 0, 0, 0.5)"
-      top={top}
-      left={left}
-      width={moduleW2LocalWidth(w)}
-      height={h}
+      top={addGutterSize(top)}
+      left={addGutterSize(left)}
+      width={removeGutterSize(w)}
+      height={removeGutterSize(h)}
       sx={{
         transitionProperty: 'top, left',
         transitionDuration: '0.1s',
